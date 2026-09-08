@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DewBox — Add Video</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ["Fraunces", "serif"],
+            sans: ["Inter", "sans-serif"],
+          },
+          colors: {
+            ink: "#121110",
+            surface: "#1b1917",
+            surface2: "#241f1c",
+            ember: "#e0a458",
+            emberBright: "#f0b96f",
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { background-color: #121110; }
+    ::selection { background: #e0a458; color: #121110; }
+  </style>
+</head>
+<body class="bg-ink text-stone-100 min-h-screen font-sans">
+  <header class="px-6 md:px-10 py-6 flex items-center justify-between max-w-3xl mx-auto">
+    <h1 class="font-display text-2xl font-semibold tracking-tight text-stone-50">DewBox</h1>
+    <a href="/" class="text-sm text-stone-400 hover:text-ember transition-colors">← Back to portfolio</a>
+  </header>
+
+  <main class="max-w-md mx-auto px-6 py-10">
+    <!-- Login gate -->
+    <div id="loginGate" class="hidden">
+      <h2 class="font-display text-2xl font-medium mb-6 text-stone-50">Enter password</h2>
+      <form id="loginForm" class="space-y-3">
+        <div class="relative">
+          <input type="password" id="passwordInput" name="password" required autofocus placeholder="Password"
+            class="w-full bg-surface border border-stone-800 rounded-lg px-3 py-2.5 pr-10 text-sm text-stone-100 placeholder-stone-600 focus:outline-none focus:border-ember transition-colors" />
+          <button type="button" id="togglePassword" aria-label="Show password"
+            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-500 hover:text-stone-200 transition-colors">
+            <svg id="eyeIcon" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="12" r="3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <button type="submit" class="w-full bg-ember text-ink py-2.5 rounded-lg font-medium hover:bg-emberBright transition-colors">Unlock</button>
+        <p id="loginError" class="text-sm text-red-400"></p>
+      </form>
+    </div>
+
+    <!-- Add video (shown once authenticated) -->
+    <div id="addPanel" class="hidden">
+      <div id="setupNotice" class="hidden mb-6 bg-surface border border-stone-800 rounded-lg p-4 text-sm text-stone-300">
+        First-time setup needed before adding videos.
+        <a href="/api/auth/start" class="text-ember hover:text-emberBright underline">Set up DewBox</a>
+      </div>
+
+      <h2 class="font-display text-2xl font-medium mb-6 text-stone-50">Add a video</h2>
+      <form id="uploadForm" class="space-y-4">
+        <div>
+          <label class="block text-sm mb-1.5 text-stone-400">Video file</label>
+          <input type="file" id="videoInput" name="video" accept="video/*" required class="sr-only" />
+          <label for="videoInput" id="dropZone" class="flex flex-col items-center justify-center gap-2 border border-dashed border-stone-700 hover:border-ember rounded-lg py-8 px-4 text-center cursor-pointer transition-colors">
+            <svg class="w-6 h-6 text-stone-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 16V4m0 0L7 9m5-5l5 5M5 20h14" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span id="dropZoneText" class="text-sm text-stone-400">
+              <span class="text-ember">Choose a video</span> or drag it here
+            </span>
+          </label>
+          <div id="fileInfo" class="hidden mt-2 flex items-center justify-between bg-surface border border-stone-800 rounded-lg px-3 py-2 text-sm">
+            <span id="fileName" class="text-stone-200 truncate"></span>
+            <div class="flex items-center gap-2 shrink-0">
+              <span id="fileSize" class="text-stone-500 text-xs"></span>
+              <button type="button" id="clearFile" aria-label="Remove file" class="text-stone-500 hover:text-red-400 transition-colors">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm mb-1.5 text-stone-400">Title</label>
+          <input type="text" name="title" required class="w-full bg-surface border border-stone-800 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-ember transition-colors" />
+        </div>
+        <div>
+          <label class="block text-sm mb-1.5 text-stone-400">Description</label>
+          <textarea name="description" rows="4" class="w-full bg-surface border border-stone-800 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-ember transition-colors"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm mb-1.5 text-stone-400">Tags (comma separated, e.g. Wedding, Corporate, Reel)</label>
+          <input type="text" name="tags" placeholder="Wedding, Reel" class="w-full bg-surface border border-stone-800 rounded-lg px-3 py-2.5 text-sm placeholder-stone-600 focus:outline-none focus:border-ember transition-colors" />
+        </div>
+        <button type="submit" id="submitBtn" class="w-full bg-ember text-ink py-2.5 rounded-lg font-medium hover:bg-emberBright transition-colors disabled:opacity-60 disabled:cursor-not-allowed">Add to DewBox</button>
+      </form>
+    </div>
+  </main>
+
+  <div id="toastContainer" class="fixed bottom-4 right-4 flex flex-col gap-2 z-50 w-full max-w-sm px-4 sm:px-0"></div>
+
+  <script>
+    const loginGate = document.getElementById("loginGate");
+    const addPanel = document.getElementById("addPanel");
+    const loginForm = document.getElementById("loginForm");
+    const loginError = document.getElementById("loginError");
+    const setupNotice = document.getElementById("setupNotice");
+    const toastContainer = document.getElementById("toastContainer");
+    const passwordInput = document.getElementById("passwordInput");
+    const togglePassword = document.getElementById("togglePassword");
+    const eyeIcon = document.getElementById("eyeIcon");
+
+    togglePassword.addEventListener("click", () => {
+      const showing = passwordInput.type === "text";
+      passwordInput.type = showing ? "password" : "text";
+      togglePassword.setAttribute("aria-label", showing ? "Show password" : "Hide password");
+      eyeIcon.innerHTML = showing
+        ? '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke-linecap="round" stroke-linejoin="round"/>'
+        : '<path d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.9 4.2A10.4 10.4 0 0112 4c6.5 0 10 7 10 7a17.3 17.3 0 01-3.1 4.1M6.1 6.1A17.4 17.4 0 002 12s3.5 7 10 7c1.3 0 2.5-.2 3.6-.6" stroke-linecap="round" stroke-linejoin="round"/>';
+    });
+
+    function toast(message, kind = "info") {
+      const el = document.createElement("div");
+      const colors = {
+        info: "bg-surface border-stone-700",
+        success: "bg-green-950 border-green-800",
+        error: "bg-red-950 border-red-800",
+      };
+      el.className = `${colors[kind]} border text-sm text-stone-100 px-4 py-3 rounded-lg shadow-lg`;
+      el.textContent = message;
+      toastContainer.appendChild(el);
+      setTimeout(() => el.remove(), 8000);
+      return el;
+    }
+
+    function fmtBytes(bytes) {
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(0)} KB`;
+      if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+      return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
+    }
+
+    function progressToast(title) {
+      const el = document.createElement("div");
+      el.className = "bg-surface border border-stone-700 text-sm text-stone-100 px-4 py-3 rounded-lg shadow-lg";
+      el.innerHTML = `
+        <div class="flex items-center justify-between mb-2">
+          <span class="truncate pr-2">${title}</span>
+          <span id="pct" class="text-ember font-medium shrink-0">0%</span>
+        </div>
+        <div class="h-1.5 bg-surface2 rounded-full overflow-hidden">
+          <div id="bar" class="h-full bg-ember rounded-full transition-[width] duration-150" style="width:0%"></div>
+        </div>
+        <div class="flex justify-between mt-1.5 text-xs text-stone-500">
+          <span id="detail">Starting…</span>
+          <span id="eta"></span>
+        </div>
+      `;
+      toastContainer.appendChild(el);
+      return {
+        el,
+        pct: el.querySelector("#pct"),
+        bar: el.querySelector("#bar"),
+        detail: el.querySelector("#detail"),
+        eta: el.querySelector("#eta"),
+      };
+    }
+
+    async function checkSession() {
+      const res = await fetch("/api/session");
+      const data = await res.json();
+      if (data.authenticated) {
+        loginGate.classList.add("hidden");
+        addPanel.classList.remove("hidden");
+        checkSetup();
+      } else {
+        loginGate.classList.remove("hidden");
+        addPanel.classList.add("hidden");
+      }
+    }
+
+    async function checkSetup() {
+      const res = await fetch("/api/videos");
+      const data = await res.json();
+      if (data.error === "Channel not connected yet") {
+        setupNotice.classList.remove("hidden");
+      } else {
+        setupNotice.classList.add("hidden");
+      }
+    }
+
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      loginError.textContent = "";
+      const password = loginForm.password.value;
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      if (res.ok) {
+        checkSession();
+      } else {
+        loginError.textContent = "Wrong password.";
+      }
+    });
+
+    const form = document.getElementById("uploadForm");
+    const videoInput = document.getElementById("videoInput");
+    const dropZone = document.getElementById("dropZone");
+    const fileInfo = document.getElementById("fileInfo");
+    const fileName = document.getElementById("fileName");
+    const fileSize = document.getElementById("fileSize");
+    const clearFile = document.getElementById("clearFile");
+
+    function showFile(file) {
+      if (!file) {
+        dropZone.classList.remove("hidden");
+        fileInfo.classList.add("hidden");
+        return;
+      }
+      fileName.textContent = file.name;
+      fileSize.textContent = fmtBytes(file.size);
+      dropZone.classList.add("hidden");
+      fileInfo.classList.remove("hidden");
+    }
+
+    videoInput.addEventListener("change", () => showFile(videoInput.files[0]));
+
+    clearFile.addEventListener("click", () => {
+      videoInput.value = "";
+      showFile(null);
+    });
+
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropZone.classList.add("border-ember");
+    });
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("border-ember"));
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("border-ember");
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        videoInput.files = e.dataTransfer.files;
+        showFile(file);
+      }
+    });
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const title = form.title.value || "Untitled";
+      const formData = new FormData(form);
+      const submitBtn = document.getElementById("submitBtn");
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Uploading…";
+
+      const progress = progressToast(`Adding "${title}"`);
+      let lastLoaded = 0;
+      let lastTime = Date.now();
+
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/upload");
+
+      xhr.upload.addEventListener("progress", (e) => {
+        if (!e.lengthComputable) return;
+        const now = Date.now();
+        const elapsed = (now - lastTime) / 1000;
+        const bytesDelta = e.loaded - lastLoaded;
+        const speed = elapsed > 0.3 ? bytesDelta / elapsed : null;
+
+        if (speed !== null) {
+          lastLoaded = e.loaded;
+          lastTime = now;
+          const remaining = e.total - e.loaded;
+          const etaSec = speed > 0 ? remaining / speed : null;
+          progress.eta.textContent = etaSec ? `${Math.ceil(etaSec)}s left` : "";
+          progress.detail.textContent = `${fmtBytes(e.loaded)} / ${fmtBytes(e.total)} · ${fmtBytes(speed)}/s`;
+        }
+
+        const pct = Math.round((e.loaded / e.total) * 100);
+        progress.pct.textContent = `${pct}%`;
+        progress.bar.style.width = `${pct}%`;
+      });
+
+      xhr.addEventListener("load", () => {
+        progress.el.remove();
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Add to DewBox";
+
+        let data = {};
+        try {
+          data = JSON.parse(xhr.responseText);
+        } catch {}
+
+        if (xhr.status >= 200 && xhr.status < 300 && !data.error) {
+          toast(`"${title}" added to DewBox.`, "success");
+          form.reset();
+          showFile(null);
+        } else {
+          toast(`Failed to add "${title}": ${data.error || xhr.statusText}`, "error");
+        }
+      });
+
+      xhr.addEventListener("error", () => {
+        progress.el.remove();
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Add to DewBox";
+        toast(`Failed to add "${title}": network error`, "error");
+      });
+
+      xhr.send(formData);
+    });
+
+    checkSession();
+  </script>
+</body>
+</html>
